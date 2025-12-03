@@ -1,0 +1,17 @@
+RewriteEngine On
+
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_URI} ^/backend/api/(analyze|dreams)\.php/(\d+)$
+RewriteRule ^backend/api/(analyze|dreams)\.php/(\d+)$ /backend/api/$1.php?id=$2 [L,QSA]
+
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_URI} ^/backend/api/(auth|dreams|analyze|stats|admin)(\.php)?$
+RewriteRule ^backend/api/(.*)$ /backend/api/$1.php [L,QSA]
+
+RewriteCond %{REQUEST_URI} ^/frontend/
+RewriteRule ^ - [L]
+
+RewriteCond %{REQUEST_URI} ^/$
+RewriteRule ^$ /frontend/index.php [L]
