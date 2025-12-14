@@ -19,7 +19,32 @@ if ($method === 'OPTIONS') {
 
 requireAdmin();
 
-$input = json_decode(file_get_contents('php://input'), true);
+
+$input = [];
+if ($method === 'POST' || $method === 'PUT' || $method === 'DELETE') {
+    $rawInput = file_get_contents('php://input');
+    if (!empty($rawInput)) {
+        $input = json_decode($rawInput, true);
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            $input = [];
+        }
+    }
+    
+    if (empty($input) && !empty($_POST)) {
+        $input = $_POST;
+    }
+}
+
+$originalMethod = $method;
+if ($method === 'POST') {
+    if (isset($input['_method'])) {
+        $method = strtoupper(trim($input['_method']));
+
+        unset($input['_method']);
+    } elseif (isset($_POST['_method'])) {
+        $method = strtoupper(trim($_POST['_method']));
+    }
+}
 
 $requestUri = $_SERVER['REQUEST_URI'];
 $path = parse_url($requestUri, PHP_URL_PATH);
@@ -117,12 +142,17 @@ try {
             break;
             
         default:
-            throw new Exception('Method not allowed');
+            $errorMsg = "Method not allowed: $method (original: " . $_SERVER['REQUEST_METHOD'] . ")";
+            if (isset($input['_method'])) {
+                $errorMsg .= ", _method in input: " . $input['_method'];
+            }
+            throw new Exception($errorMsg);
     }
 } catch (Exception $e) {
     http_response_code(400);
+    header('Content-Type: application/json');
     echo json_encode([
         'success' => false,
         'error' => $e->getMessage()
-    ]);
+    ], JSON_UNESCAPED_UNICODE);
 }

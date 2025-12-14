@@ -151,19 +151,72 @@ $username = $_SESSION['username'] ?? 'Пользователь';
                 return;
             }
             
+            if (formData.content.length > 1000) {
+                showError(errorDiv, 'Описание сна не должно превышать 1000 символов');
+                return;
+            }
+            
             if (!formData.dream_date) {
                 showError(errorDiv, 'Пожалуйста, укажите дату сна');
                 return;
             }
+                
+            const inputDate = new Date(formData.dream_date);
+            if (isNaN(inputDate.getTime())) {
+                showError(errorDiv, 'Некорректная дата сна');
+                return;
+            }
+            
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const hundredYearsAgo = new Date();
+            hundredYearsAgo.setFullYear(today.getFullYear() - 100);
+            hundredYearsAgo.setHours(0, 0, 0, 0);
+            
+            if (inputDate > today) {
+                showError(errorDiv, 'Дата сна не может быть в будущем');
+                return;
+            }
+            
+            if (inputDate < hundredYearsAgo) {
+                showError(errorDiv, 'Дата сна не может быть раньше чем 100 лет назад');
+                return;
+            }
             
             try {
-                const response = await fetch(`/backend/api/dreams.php/${dreamId}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(formData)
-                });
+                const url = `/backend/api/dreams.php/${dreamId}`;
                 
-                const data = await response.json();
+                const dataToSend = { ...formData, _method: 'PUT' };
+                
+                let response;
+                try {
+                    response = await fetch(url, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'same-origin',
+                        body: JSON.stringify(formData)
+                    });
+                } catch (putError) {
+                    response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'same-origin',
+                        body: JSON.stringify(dataToSend)
+                    });
+                }
+                
+                const responseText = await response.text();
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${responseText}`);
+                }
+                
+                let data;
+                try {
+                    data = JSON.parse(responseText);
+                } catch (e) {
+                    throw new Error('Не удалось распарсить JSON: ' + responseText);
+                }
                 
                 if (data.success) {
                     showSuccess(successDiv, 'Сон успешно обновлён!');
@@ -174,7 +227,8 @@ $username = $_SESSION['username'] ?? 'Пользователь';
                     showError(errorDiv, data.error || 'Ошибка при обновлении сна');
                 }
             } catch (error) {
-                showError(errorDiv, 'Ошибка сети. Проверьте подключение.');
+                console.error('Ошибка обновления сна:', error);
+                showError(errorDiv, 'Ошибка: ' + error.message);
             }
         });
         

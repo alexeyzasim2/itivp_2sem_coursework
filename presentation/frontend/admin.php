@@ -107,6 +107,12 @@
         async function loadUsers() {
             try {
                 const response = await fetch('/backend/api/admin.php?users');
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${errorText}`);
+                }
+                
                 const data = await response.json();
                 
                 if (data.success) {
@@ -129,15 +135,24 @@
                             </div>
                         </div>
                     `).join('');
+                } else {
+                    alert('Ошибка: ' + (data.error || 'Неизвестная ошибка'));
                 }
             } catch (error) {
-                alert('Ошибка загрузки пользователей');
+                console.error('Ошибка загрузки пользователей:', error);
+                alert('Ошибка загрузки пользователей: ' + error.message);
             }
         }
 
         async function loadDreams() {
             try {
                 const response = await fetch('/backend/api/admin.php?dreams');
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${errorText}`);
+                }
+                
                 const data = await response.json();
                 
                 if (data.success) {
@@ -160,15 +175,24 @@
                             </div>
                         </div>
                     `).join('');
+                } else {
+                    alert('Ошибка: ' + (data.error || 'Неизвестная ошибка'));
                 }
             } catch (error) {
-                alert('Ошибка загрузки снов');
+                console.error('Ошибка загрузки снов:', error);
+                alert('Ошибка загрузки снов: ' + error.message);
             }
         }
 
         async function editUser(userId) {
             try {
                 const response = await fetch(`/backend/api/admin.php?action=user&id=${userId}`);
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${errorText}`);
+                }
+                
                 const data = await response.json();
                 
                 if (data.success) {
@@ -177,9 +201,12 @@
                     document.getElementById('editRole').value = data.user.role;
                     document.getElementById('editPassword').value = '';
                     document.getElementById('editUserModal').style.display = 'block';
+                } else {
+                    alert('Ошибка: ' + (data.error || 'Неизвестная ошибка'));
                 }
             } catch (error) {
-                alert('Ошибка загрузки пользователя');
+                console.error('Ошибка загрузки пользователя:', error);
+                alert('Ошибка загрузки пользователя: ' + error.message);
             }
         }
 
@@ -205,25 +232,54 @@
             }
             
             try {
-                const response = await fetch(`/backend/api/admin.php?action=user&id=${userId}`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(updateData)
-                });
+                const url = `/backend/api/admin.php?action=user&id=${userId}`;
                 
-                const data = await response.json();
+                const dataToSend = { ...updateData, _method: 'PUT' };
+                
+                let response;
+                try {
+                    response = await fetch(url, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        credentials: 'same-origin',
+                        body: JSON.stringify(updateData)
+                    });
+                } catch (putError) {
+                    response = await fetch(url, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        credentials: 'same-origin',
+                        body: JSON.stringify(dataToSend)
+                    });
+                }
+                
+                const responseText = await response.text();
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${responseText}`);
+                }
+                
+                let data;
+                try {
+                    data = JSON.parse(responseText);
+                } catch (e) {
+                    throw new Error('Не удалось распарсить JSON: ' + responseText);
+                }
                 
                 if (data.success) {
                     alert('Пользователь обновлен');
                     closeEditUserModal();
                     loadUsers();
                 } else {
-                    alert('Ошибка: ' + data.error);
+                    alert('Ошибка: ' + (data.error || 'Неизвестная ошибка'));
                 }
             } catch (error) {
-                alert('Ошибка сети');
+                console.error('Ошибка обновления пользователя:', error);
+                alert('Ошибка: ' + error.message);
             }
         });
 
@@ -233,20 +289,47 @@
             }
             
             try {
-                const response = await fetch(`/backend/api/admin.php?action=user&id=${userId}`, {
-                    method: 'DELETE'
-                });
+                const url = `/backend/api/admin.php?action=user&id=${userId}`;
                 
-                const data = await response.json();
+                let response;
+                try {
+                    response = await fetch(url, {
+                        method: 'DELETE',
+                        credentials: 'same-origin'
+                    });
+                } catch (deleteError) {
+                    response = await fetch(url, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        credentials: 'same-origin',
+                        body: JSON.stringify({ _method: 'DELETE' })
+                    });
+                }
+                
+                const responseText = await response.text();
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${responseText}`);
+                }
+                
+                let data;
+                try {
+                    data = JSON.parse(responseText);
+                } catch (e) {
+                    throw new Error('Не удалось распарсить JSON: ' + responseText);
+                }
                 
                 if (data.success) {
                     alert('Пользователь удален');
                     loadUsers();
                 } else {
-                    alert('Ошибка: ' + data.error);
+                    alert('Ошибка: ' + (data.error || 'Неизвестная ошибка'));
                 }
             } catch (error) {
-                alert('Ошибка сети');
+                console.error('Ошибка удаления пользователя:', error);
+                alert('Ошибка: ' + error.message);
             }
         }
 
@@ -256,20 +339,45 @@
             }
             
             try {
-                const response = await fetch(`/backend/api/admin.php?action=dream&id=${dreamId}`, {
-                    method: 'DELETE'
-                });
+                const url = `/backend/api/admin.php?action=dream&id=${dreamId}`;
                 
-                const data = await response.json();
+                let response;
+                try {
+                    response = await fetch(url, {
+                        method: 'DELETE',
+                        credentials: 'same-origin'
+                    });
+                } catch (deleteError) {
+                    response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'same-origin',
+                        body: JSON.stringify({ _method: 'DELETE' })
+                    });
+                }
+                
+                const responseText = await response.text();
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${responseText}`);
+                }
+                
+                let data;
+                try {
+                    data = JSON.parse(responseText);
+                } catch (e) {
+                    throw new Error('Не удалось распарсить JSON: ' + responseText);
+                }
                 
                 if (data.success) {
                     alert('Сон удален');
                     loadDreams();
                 } else {
-                    alert('Ошибка: ' + data.error);
+                    alert('Ошибка: ' + (data.error || 'Неизвестная ошибка'));
                 }
             } catch (error) {
-                alert('Ошибка сети');
+                console.error('Ошибка удаления сна:', error);
+                alert('Ошибка: ' + error.message);
             }
         }
 

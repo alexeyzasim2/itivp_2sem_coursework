@@ -116,8 +116,35 @@ $username = $_SESSION['username'] ?? 'Пользователь';
                 return;
             }
             
+            if (formData.content.length > 1000) {
+                showError(errorDiv, 'Описание сна не должно превышать 1000 символов');
+                return;
+            }
+            
             if (!formData.dream_date) {
                 showError(errorDiv, 'Пожалуйста, укажите дату сна');
+                return;
+            }
+            
+            const inputDate = new Date(formData.dream_date);
+            if (isNaN(inputDate.getTime())) {
+                showError(errorDiv, 'Некорректная дата сна');
+                return;
+            }
+            
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const hundredYearsAgo = new Date();
+            hundredYearsAgo.setFullYear(today.getFullYear() - 100);
+            hundredYearsAgo.setHours(0, 0, 0, 0);
+            
+            if (inputDate > today) {
+                showError(errorDiv, 'Дата сна не может быть в будущем');
+                return;
+            }
+            
+            if (inputDate < hundredYearsAgo) {
+                showError(errorDiv, 'Дата сна не может быть раньше чем 100 лет назад');
                 return;
             }
             

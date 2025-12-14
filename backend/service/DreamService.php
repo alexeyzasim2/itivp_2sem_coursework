@@ -12,20 +12,45 @@ class DreamService {
     public function validateDream($data) {
         $errors = [];
         
-        if (empty($data['title'])) {
+        $title = isset($data['title']) ? trim($data['title']) : '';
+        $content = isset($data['content']) ? trim($data['content']) : '';
+        $dreamDate = $data['dream_date'] ?? null;
+        
+        if ($title === '') {
             $errors[] = 'Title is required';
         }
         
-        if (empty($data['content'])) {
+        if ($content === '') {
             $errors[] = 'Content is required';
         }
         
-        if (empty($data['dream_date'])) {
+        if (empty($dreamDate)) {
             $errors[] = 'Dream date is required';
-        } else {
-            $date = DateTime::createFromFormat('Y-m-d', $data['dream_date']);
-            if (!$date || $date->format('Y-m-d') !== $data['dream_date']) {
+        }
+        
+        if ($title !== '' && mb_strlen($title) > 255) {
+            $errors[] = 'Title must not exceed 255 characters';
+        }
+        
+        if ($content !== '' && mb_strlen($content) > 1000) {
+            $errors[] = 'Content must not exceed 1000 characters';
+        }
+            
+        if (!empty($dreamDate)) {
+            $date = DateTime::createFromFormat('Y-m-d', $dreamDate);
+            if (!$date || $date->format('Y-m-d') !== $dreamDate) {
                 $errors[] = 'Invalid date format. Use YYYY-MM-DD';
+            } else {
+                $today = new DateTime('today');
+                $hundredYearsAgo = (clone $today)->modify('-100 years');
+                
+                if ($date > $today) {
+                    $errors[] = 'Dream date cannot be in the future';
+                }
+                
+                if ($date < $hundredYearsAgo) {
+                    $errors[] = 'Dream date cannot be more than 100 years ago';
+                }
             }
         }
         
@@ -59,11 +84,25 @@ class DreamService {
         $updateData = [];
         
         if (isset($data['title'])) {
-            $updateData['title'] = trim($data['title']);
+            $title = trim($data['title']);
+            if ($title === '') {
+                throw new Exception('Title is required');
+            }
+            if (mb_strlen($title) > 255) {
+                throw new Exception('Title must not exceed 255 characters');
+            }
+            $updateData['title'] = $title;
         }
         
         if (isset($data['content'])) {
-            $updateData['content'] = trim($data['content']);
+            $content = trim($data['content']);
+            if ($content === '') {
+                throw new Exception('Content is required');
+            }
+            if (mb_strlen($content) > 1000) {
+                throw new Exception('Content must not exceed 1000 characters');
+            }
+            $updateData['content'] = $content;
         }
         
         if (isset($data['mood'])) {

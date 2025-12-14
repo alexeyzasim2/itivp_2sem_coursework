@@ -230,20 +230,45 @@ $username = $_SESSION['username'] ?? 'Пользователь';
             }
             
             try {
-                const response = await fetch(`/backend/api/dreams.php/${id}`, {
-                    method: 'DELETE'
-                });
+                const url = `/backend/api/dreams.php/${id}`;
                 
-                const data = await response.json();
+                let response;
+                try {
+                    response = await fetch(url, {
+                        method: 'DELETE',
+                        credentials: 'same-origin'
+                    });
+                } catch (deleteError) {
+                    response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'same-origin',
+                        body: JSON.stringify({ _method: 'DELETE' })
+                    });
+                }
+                
+                const responseText = await response.text();
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${responseText}`);
+                }
+                
+                let data;
+                try {
+                    data = JSON.parse(responseText);
+                } catch (e) {
+                    throw new Error('Не удалось распарсить JSON: ' + responseText);
+                }
                 
                 if (data.success) {
                     loadDreams();
                     loadStats();
                 } else {
-                    alert('Ошибка удаления: ' + data.error);
+                    alert('Ошибка удаления: ' + (data.error || 'Неизвестная ошибка'));
                 }
             } catch (error) {
-                alert('Ошибка сети при удалении');
+                console.error('Ошибка удаления сна:', error);
+                alert('Ошибка: ' + error.message);
             }
         }
         

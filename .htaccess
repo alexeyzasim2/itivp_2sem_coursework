@@ -1,17 +1,27 @@
 RewriteEngine On
 
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME} !-d
-RewriteCond %{REQUEST_URI} ^/backend/api/(analyze|dreams)\.php/(\d+)$
+# Обработка RESTful путей для analyze и dreams (например: /backend/api/dreams.php/123)
+# Это правило должно быть ПЕРВЫМ, чтобы обработать пути с ID
+RewriteCond %{REQUEST_URI} ^/backend/api/(analyze|dreams)\.php/(\d+)
 RewriteRule ^backend/api/(analyze|dreams)\.php/(\d+)$ /backend/api/$1.php?id=$2 [L,QSA]
 
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME} !-d
+# Пропускаем существующие файлы и директории БЕЗ дополнительных сегментов пути
+RewriteCond %{REQUEST_FILENAME} -f
+RewriteCond %{REQUEST_URI} !^/backend/api/(analyze|dreams)\.php/
+RewriteRule ^ - [L]
+
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# Обработка API endpoints без расширения .php (если файл не существует)
+# Например: /backend/api/admin -> /backend/api/admin.php
 RewriteCond %{REQUEST_URI} ^/backend/api/(auth|dreams|analyze|stats|admin)(\.php)?$
 RewriteRule ^backend/api/(.*)$ /backend/api/$1.php [L,QSA]
 
+# Пропускаем frontend без изменений
 RewriteCond %{REQUEST_URI} ^/frontend/
 RewriteRule ^ - [L]
 
+# Корневой путь -> frontend
 RewriteCond %{REQUEST_URI} ^/$
 RewriteRule ^$ /frontend/index.php [L]

@@ -1,0 +1,69 @@
+@startuml
+skinparam monochrome true
+skinparam shadowing false
+
+class User {
+  -id: int
+  -username: string
+  -password_hash: string
+  -role: string = "user"
+  -created_at: datetime
+  
+  +check_username(): void
+  +validate_registration(): void
+  +validate_login(): void
+}
+
+class Dream {
+  -id: int
+  -user_id: int
+  -title: string
+  -content: text
+  -mood: string
+  -dream_date: date
+  -created_at: datetime
+  
+  +get_dreams(): array
+  +get_dream_by_id(id: int): array
+  +validate_dream(): void
+  +analyze_dream(): void
+}
+
+class DreamSymbol {
+  -id: int
+  -word: string
+  -variants: string
+  -meaning: text
+  
+  +get_symbols(): array
+  +find_symbols_in_text(text: string): array
+}
+
+class DreamSymbolsFound {
+  -id: int
+  -dream_id: int
+  -symbol_id: int
+  -found_at: datetime
+  
+  +get_found_symbols(dream_id: int): array
+  +save_found_symbols(dream_id: int, symbol_id: int): void
+}
+
+class Stats {
+  -total_dreams: int
+  -mood_distribution: map
+  -top_words: list
+  
+  +get_stats(user_id: int): array
+  +calculate_mood_distribution(user_id: int): map
+  +calculate_top_words(user_id: int): list
+}
+
+User "1" --> "0..*" Dream : creates
+User "1" --> "1" Stats : has
+Dream "1" --> "0..*" DreamSymbolsFound : analyzed
+DreamSymbol "1" --> "0..*" DreamSymbolsFound : found_in
+Stats --> Dream : analyzes
+
+@enduml
+
